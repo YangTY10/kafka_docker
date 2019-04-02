@@ -1,0 +1,63 @@
+version: '2'
+services:
+  zookeeper:
+    image: wurstmeister/zookeeper
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: wurstmeister/kafka:2.11-0.11.0.3
+    ports:
+      - "9092"
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_HOST_NAME: 192.168.99.100
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://:9092
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  jupyter:
+    build:
+     context: ./dockerfile
+     dockerfile: dockerfile-jupyter
+    ports:
+      - "8889:8888"
+    command: start-notebook.sh --NotebookApp.token=''
+    volumes:
+      - ./code:/home/jovyan/work
+
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    ports:
+      - "3307:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=iii
+    volumes:
+      - ./mysql_db/mysql_data:/var/lib/mysql
+      - ./mysql_db/mysql_init:/docker-entrypoint-initdb.d/
+
+  hadoop:
+    image: orozcohsu/ha-sp-ze-zo-hi-fl:v7
+    container_name: iii
+    hostname: master
+    environment:
+      - "NODE_TYPE=master"
+    ports:
+      - "8088:8088"
+      - "50070:50070"
+      - "9000:9000"
+      - "2222:22"
+      - "8080:8080"
+      - "18080:18080"
+      - "10000:10000"
+      - "10002:10002"
+      - "9083:9083"
+    volumes:
+      - /tmp/docker-cluster-hadoop-name/:/data/dfs/name/
+      - /tmp/docker-cluster-hadoop-data/:/data/dfs/data/
+      - /tmp/docker-cluster-hadoop-logs/:/usr/local/hadoop/logs/
+      - /tmp/docker-cluster-zookeeper-logs/:/var/log/zookeeper/
+      - /tmp/docker-cluster-zeppelin-logs/:/usr/local/zeppelin/log
